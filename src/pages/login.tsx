@@ -1,13 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useLogin } from "@refinedev/core";
 
-import {yariga} from "../assets";
+import yariga from "../assets/yariga.svg";
 
-import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
-import Typography from "@mui/material/Typography";
-import { ThemedTitleV2 } from "@refinedev/mui";
+//import Typography from "@mui/material/Typography";
+//import { ThemedTitleV2 } from "@refinedev/mui";
 
 import { CredentialResponse } from "../interfaces/google"; 
 
@@ -21,40 +20,50 @@ export const Login: React.FC = () => {
         const divRef = useRef<HTMLDivElement>(null);
 
         useEffect(() => {
-            if (
-                typeof window === "undefined" ||
-                !window.google ||
-                !divRef.current
-            ) {
+            if (typeof window === "undefined" || !window.google) {
+                console.error("Google API not loaded.");
+                return;
+            }
+
+            if (!divRef.current) {
+                console.error("Google Button container is missing.");
                 return;
             }
 
             try {
                 window.google.accounts.id.initialize({
                     ux_mode: "popup",
-                    client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+                    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
                     callback: async (res: CredentialResponse) => {
                         if (res.credential) {
                             login(res);
                         }
                     },
+                    
                 });
                 window.google.accounts.id.renderButton(divRef.current, {
                     theme: "filled_blue",
                     size: "medium",
                     type: "standard",
+                    
                 });
+                
             } catch (error) {
                 console.log(error);
             }
         }, []);
 
-        return <div ref={divRef} />;
+        return (
+            <div style={{ display: "flex", justifyContent: "center" }}>
+                <div ref={divRef} />
+            </div>
+        );
     };
 
 
     
         return (
+            <Box component="div" sx={{ background: "#FCFCFC" , height: "100vh"}}>
             <Container
             style={{
                 height: "100vh",
@@ -65,21 +74,30 @@ export const Login: React.FC = () => {
             >
             <Box
                 display="flex"
-                gap="36px"
+                gap="16px"
                 justifyContent="center"
+                alignItems="center"
                 flexDirection="column"
+                textAlign="center"
             >
-                <ThemedTitleV2
+                {/* <ThemedTitleV2
                 collapsed={false}
                 wrapperStyles={{
                     fontSize: "22px",
                     justifyContent: "center",
                 }}
-                />
+                /> */}
+                <div>
+                    <img src={yariga} alt="Yariga Logo" style={{ maxWidth: "200px" }}/>
+                </div>
 
-                <GoogleButton />
+                <Box mt={1} display="flex" justifyContent="center">
+                    <GoogleButton/>
+                </Box>
 
-                <Typography align="center" color={"text.secondary"} fontSize="12px">
+            
+
+                {/* <Typography align="center" color={"text.secondary"} fontSize="12px">
                 Powered by
           <img
             style={{ padding: "0 5px" }}
@@ -87,9 +105,10 @@ export const Login: React.FC = () => {
             src="https://refine.ams3.cdn.digitaloceanspaces.com/superplate-auth-icons%2Fgoogle.svg"
           />
           Google
-                </Typography>
+                </Typography> */}
             </Box>
             </Container>
+            </Box>
         );
 
 };
