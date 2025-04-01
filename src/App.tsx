@@ -1,225 +1,180 @@
-import { 
-    Refine,
-    GitHubBanner, 
-    WelcomePage,
-    Authenticated
-,AuthBindings, 
-} from '@refinedev/core';
-import { DevtoolsPanel, DevtoolsProvider } from "@refinedev/devtools";
-import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
-
-    import { AuthPage,ErrorComponent
-,useNotificationProvider
-,RefineSnackbarProvider
-,ThemedLayoutV2} from '@refinedev/mui';
-
-import dataProvider from "@refinedev/simple-rest";
+import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
+import ChatBubbleOutline from "@mui/icons-material/ChatBubbleOutline";
+import PeopleAltOutlined from "@mui/icons-material/PeopleAltOutlined";
+import StarOutlineRounded from "@mui/icons-material/StarOutlineRounded";
+import VillaOutlined from "@mui/icons-material/VillaOutlined";
 import CssBaseline from "@mui/material/CssBaseline";
 import GlobalStyles from "@mui/material/GlobalStyles";
-import { BrowserRouter, Route, Routes, Outlet } from "react-router";
-import routerBindings, { NavigateToResource, CatchAllNavigate, UnsavedChangesNotifier, DocumentTitleHandler } from "@refinedev/react-router";
+import {
+  GitHubBanner,
+  type LegacyAuthProvider as AuthProvider,
+  Refine,
+  ReadyPage,
+} from "@refinedev/core";
+import {
+  ErrorComponent,
+  useNotificationProvider,
+  RefineSnackbarProvider,
+} from "@refinedev/mui";
+
+import routerProvider from "@refinedev/react-router-v6/legacy";
+import dataProvider from "@refinedev/simple-rest";
 import axios from "axios";
-import { BlogPostList, BlogPostCreate, BlogPostEdit, BlogPostShow } from "./pages/blog-posts";
-import { CategoryList, CategoryCreate, CategoryEdit, CategoryShow } from "./pages/categories";
-import { ColorModeContextProvider } from "./contexts/color-mode";
-import { Header } from "./components/header";
-import { Login } from "./pages/login";
-import { CredentialResponse } from "./interfaces/google";
+//import { Header, Layout, Sider, Title } from "components/layout";
+import { Header, Layout, Sider, Title } from "./components/layout"
+import { ColorModeContextProvider } from "./contexts"
+import type { CredentialResponse } from "./interfaces/google";
 import { parseJwt } from "./utils/parse-jwt";
 
+import {
+  AgentProfile,
+  Agents,
+  AllProperties,
+  CreateProperty,
+  EditProperty,
+  Home,
+  Login,
+  MyProfile,
+  PropertyDetails,
+} from "./pages";
+
 const axiosInstance = axios.create();
-axiosInstance.interceptors.request.use((config) => {
-const token = localStorage.getItem("token");
-if (config.headers) {
-    config.headers["Authorization"] = `Bearer ${token}`;
-}
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
 
-return config;
-});
+    if (config.headers) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
 
-
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
 function App() {
-    
+  const authProvider: AuthProvider = {
+    login: async ({ credential }: CredentialResponse) => {
+      const profileObj = credential ? parseJwt(credential) : null;
 
-    
-            const authProvider: AuthBindings = {
-                login: async ({ credential }: CredentialResponse) => {
-                    const profileObj = credential ? parseJwt(credential) : null;
+      if (profileObj) {
+        const response = await fetch("http://localhost:8080/api/v1/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: profileObj.name,
+            email: profileObj.email,
+            avatar: profileObj.picture,
+          }),
+        });
 
-                    if (profileObj) {
-                        localStorage.setItem(
-                            "user",
-                            JSON.stringify({
-                                ...profileObj,
-                                avatar: profileObj.picture,
-                            }),
-                        );
-                        
-localStorage.setItem("token", `${ credential }`);
+        const data = await response.json();
 
-                        return {
-                            success: true,
-                            redirectTo: "/",
-                        };
-                    }
+        if (response.status === 200) {
+          localStorage.setItem(
+            "user",
+            JSON.stringify({
+              ...profileObj,
+              avatar: profileObj.picture,
+              userid: data._id,
+            }),
+          );
+        } else {
+          return Promise.reject();
+        }
+      }
+      localStorage.setItem("token", `${credential}`);
 
-                    return {
-                        success: false,
-                    };
-                },
-                logout: async () => {
-                    const token = localStorage.getItem("token");
+      return Promise.resolve();
+    },
+    logout: () => {
+      const token = localStorage.getItem("token");
 
-                    if (token && typeof window !== "undefined") {
-                        localStorage.removeItem("token");
-                        localStorage.removeItem("user");
-                        axios.defaults.headers.common = {};
-                        window.google?.accounts.id.revoke(token, () => {
-                            return {};
-                        });
-                    }
+      if (token && typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        axios.defaults.headers.common = {};
+        window.google?.accounts.id.revoke(token, () => {
+          return Promise.resolve();
+        });
+      }
 
-                    return {
-                        success: true,
-                        redirectTo: "/login",
-                    };
-                },
-                onError: async (error) => {
-                    console.error(error);
-                    return { error };
-                },
-                check: async () => {
-                    const token = localStorage.getItem("token");
+      return Promise.resolve();
+    },
+    checkError: () => Promise.resolve(),
+    checkAuth: async () => {
+      const token = localStorage.getItem("token");
 
-                    if (token) {
-                        return {
-                            authenticated: true,
-                        };
-                    }
+      if (token) {
+        return Promise.resolve();
+      }
+      return Promise.reject();
+    },
 
-                    return {
-                        authenticated: false,
-                        error: {
-                            message: "Check failed",
-                            name: "Token not found",
-                        },
-                        logout: true,
-                        redirectTo: "/login",
-                    };
-                },
-                getPermissions: async () => null,
-                getIdentity: async () => {
-                    const user = localStorage.getItem("user");
-                    if (user) {
-                        return JSON.parse(user);
-                    }
+    getPermissions: async () => null,
+    getUserIdentity: async () => {
+      const user = localStorage.getItem("user");
+      if (user) {
+        return Promise.resolve(JSON.parse(user));
+      }
+    },
+  };
 
-                    return null;
-                },
-            };
-            
-    
-    return (
-        <BrowserRouter>
-        <GitHubBanner />
-        <RefineKbarProvider>
-            <ColorModeContextProvider>
-<CssBaseline />
-<GlobalStyles styles={{ html: { WebkitFontSmoothing: "auto" } }} />
-<RefineSnackbarProvider>
-            <DevtoolsProvider>
-                <Refine dataProvider={dataProvider("https://api.fake-rest.refine.dev")}
-notificationProvider={useNotificationProvider}
-routerProvider={routerBindings}
-authProvider={authProvider} 
-                        resources={[
-                            {
-                                name: "blog_posts",
-                                list: "/blog-posts",
-                                create: "/blog-posts/create",
-                                edit: "/blog-posts/edit/:id",
-                                show: "/blog-posts/show/:id",
-                                meta: {
-                                    canDelete: true,
-                                },
-                            },
-                            {
-                                name: "categories",
-                                list: "/categories",
-                                create: "/categories/create",
-                                edit: "/categories/edit/:id",
-                                show: "/categories/show/:id",
-                                meta: {
-                                    canDelete: true,
-                                },
-                            },
-                        ]}
-                    options={{
-                        syncWithLocation: true,
-                        warnWhenUnsavedChanges: true,
-                        useNewQueryKeys: true,
-                            projectId: "NDmXsv-QmVd3u-1tV0v8",
-                        
-                    }}
-                >
-                    <Routes>
-                        <Route
-                            element={
-                                <Authenticated
-                                    key="authenticated-inner"
-                                    fallback={<CatchAllNavigate to="/login" />}
-                                >
-                                        <ThemedLayoutV2
-                                            Header={Header}
-                                        >
-                                            <Outlet />
-                                        </ThemedLayoutV2>
-                                </Authenticated>
-                            }
-                        >
-                            <Route index element={
-                                    <NavigateToResource resource="blog_posts" />
-                            } />
-                            <Route path="/blog-posts">
-                                <Route index element={<BlogPostList />} />
-                                <Route path="create" element={<BlogPostCreate />} />
-                                <Route path="edit/:id" element={<BlogPostEdit />} />
-                                <Route path="show/:id" element={<BlogPostShow />} />
-                            </Route>
-                            <Route path="/categories">
-                                <Route index element={<CategoryList />} />
-                                <Route path="create" element={<CategoryCreate />} />
-                                <Route path="edit/:id" element={<CategoryEdit />} />
-                                <Route path="show/:id" element={<CategoryShow />} />
-                            </Route>
-                            <Route path="*" element={<ErrorComponent />} />
-                        </Route>
-                        <Route
-                            element={
-                                <Authenticated key="authenticated-outer" fallback={<Outlet />}>
-                                    <NavigateToResource />
-                                </Authenticated>
-                            }
-                        >
-                                <Route path="/login" element={<Login />}  />
-                        </Route>
-                    </Routes>
-
-
-                    <RefineKbar />
-                    <UnsavedChangesNotifier />
-                    <DocumentTitleHandler />
-                </Refine>
-            <DevtoolsPanel />
-            </DevtoolsProvider>
-            </RefineSnackbarProvider>
-
-
-</ColorModeContextProvider>
-        </RefineKbarProvider>
-        </BrowserRouter>
-      );
-};
+  return (
+    <ColorModeContextProvider>
+      <GitHubBanner />
+      <CssBaseline />
+      <GlobalStyles styles={{ html: { WebkitFontSmoothing: "auto" } }} />
+      <RefineSnackbarProvider>
+        <Refine
+          dataProvider={dataProvider("http://localhost:8080/api/v1")}
+          notificationProvider={useNotificationProvider}
+          ReadyPage={ReadyPage}
+          catchAll={<ErrorComponent />}
+          resources={[
+            {
+              name: "properties",
+              list: AllProperties,
+              show: PropertyDetails,
+              create: CreateProperty,
+              edit: EditProperty,
+              icon: <VillaOutlined />,
+            },
+            {
+              name: "agents",
+              list: Agents,
+              show: AgentProfile,
+              icon: <PeopleAltOutlined />,
+            },
+            {
+              name: "reviews",
+              list: Home,
+              icon: <StarOutlineRounded />,
+            },
+            {
+              name: "messages",
+              list: Home,
+              icon: <ChatBubbleOutline />,
+            },
+            {
+              name: "my-profile",
+              options: { label: "My Profile " },
+              list: MyProfile,
+              icon: <AccountCircleOutlined />,
+            },
+          ]}
+          Title={Title}
+          Sider={Sider}
+          Layout={Layout}
+          Header={Header}
+          legacyRouterProvider={routerProvider}
+          legacyAuthProvider={authProvider}
+          LoginPage={Login}
+          DashboardPage={Home}
+        />
+      </RefineSnackbarProvider>
+    </ColorModeContextProvider>
+  );
+}
 
 export default App;
