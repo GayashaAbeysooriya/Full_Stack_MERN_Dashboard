@@ -88,7 +88,7 @@ const Home = () => {
               key={property._id}
               id={property._id}
               title={property.title}
-              location={property.location}
+              Location={property.location}
               price={property.price}
               photo={property.photo}
             />

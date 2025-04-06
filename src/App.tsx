@@ -18,11 +18,12 @@ import {
 } from "@refinedev/mui";
 
 import routerProvider from "@refinedev/react-router-v6/legacy";
+//import { RouterProvider } from "react-router";
+//import { RouterProvider } from "@refinedev/core";
 import dataProvider from "@refinedev/simple-rest";
 import axios from "axios";
-//import { Header, Layout, Sider, Title } from "components/layout";
 import { Header, Layout, Sider, Title } from "./components/layout"
-import { ColorModeContextProvider } from "./contexts"
+import { ColorModeContextProvider } from "./contexts/color-mode";
 import type { CredentialResponse } from "./interfaces/google";
 import { parseJwt } from "./utils/parse-jwt";
 
@@ -70,7 +71,7 @@ function App() {
 
         const data = await response.json();
 
-        if (response.status === 200) {
+        if (response.ok) {
           localStorage.setItem(
             "user",
             JSON.stringify({

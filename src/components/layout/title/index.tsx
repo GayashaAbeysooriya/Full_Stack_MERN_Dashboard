@@ -2,8 +2,14 @@ import React from "react";
 import { useRouterContext, type TitleProps } from "@refinedev/core";
 import Button from "@mui/material/Button";
 
-import yariga from "../assets/yariga.svg";
-import logo from "../assets/logo.svg";
+//import yariga from "../assets/yariga.svg";
+//import yariga from "../../assets/yariga.svg";
+//import logo from "../../assets/logo.svg";
+//import logo from "../assets/logo.svg";
+import yariga from "/src/assets/yariga.svg";
+import logo from "/src/assets/logo.svg";
+
+
 
 export const Title: React.FC<TitleProps> = ({ collapsed }) => {
   const { Link } = useRouterContext();
